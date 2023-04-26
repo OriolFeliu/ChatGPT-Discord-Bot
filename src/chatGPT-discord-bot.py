@@ -1,12 +1,7 @@
 import discord
 import openai
+from api_keys import DISCORD_API_KEY, OPENAI_ORGANIZATION, OPENAI_API_KEY
 
-
-DISCORD_API_KEY = (
-    "MTEwMDQyNTUzMTg2Mzg1OTMwMQ.GDFs7u.C7OoeIkc9THHpuQAUzcg-aukBdJCEZJVChUQxM"
-)
-OPENAI_ORGANIZATION = "org-3K7RgRFjDSc7DT0PxzX4uMyj"
-OPENAI_API_KEY = "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"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -29,7 +24,7 @@ async def generate_response(prompt):
         )
 
         return completion.choices[0].message.content
-    
+
     except openai.error.RateLimitError as e:
         return f"Rate limit exceeded: {e}"
     except openai.error.AuthenticationError as e:
