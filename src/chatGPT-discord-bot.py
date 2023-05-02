@@ -8,7 +8,7 @@ class ChatGPTBot(discord.Client):
         super().__init__(*args, **kwargs)
         self.messages = [{
             "role": "system",
-            "content": "From now on, the messages you recieve will be from Discord users, so you are a Discord bot, act as such, don't give answers that are too long, but you are still chatGPT.",
+            "content": "From now on, the messages you recieve will be from Discord users, so you are a Discord bot, act as such, give answers that are as short as possible, but you are still chatGPT.",
         }]
         openai.api_key = OPENAI_API_KEY
 
@@ -37,27 +37,29 @@ class ChatGPTBot(discord.Client):
             if message.author == self.user:
                 return
 
-            print("--Message Content--")
-            print(message.content)
+            username = str(message.author)
+            user_message = str(message.content)
+            channel = str(message.channel)
+            print(f" {username} said: '{user_message}' ({channel})")
 
-            if message.content.startswith("!c"):
-                await message.channel.send("Waiting for ChatGPT response...")
+            if message.content.startswith("!c") or message.content.startswith(f"<@{self.user.id}>"):
+                async with message.channel.typing():  # Display "ChatGPT is typing..." message
+                    prompt = message.content[3:] if message.content.startswith(
+                        "!c") else message.content.replace(f"<@{self.user.id}>", "").strip()
 
-                prompt = message.content[3:]
+                    self.messages.append({
+                        "role": "user",
+                        "content": prompt
+                    })
 
-                self.messages.append({
-                    "role": "user",
-                    "content": prompt
-                })
+                    response = await self.generate_response()
 
-                response = await self.generate_response()
+                    self.messages.append({
+                        "role": "assistant",
+                        "content": response
+                    })
 
-                self.messages.append({
-                    "role": "assistant",
-                    "content": response
-                })
-
-                await message.channel.send(response)
+                    await message.channel.send(response)
 
             elif message.content.startswith("!new"):
                 print("--Conversation cleared--")
@@ -68,11 +70,23 @@ class ChatGPTBot(discord.Client):
                     }
                 ]
 
+            elif message.content.startswith("!help"):
+                help_text = """
+                **Commands:**
+                `!c <prompt>` - Ask a question or start a conversation
+                `!new` - Clear the current conversation
+                `!help` - Show this help message
+                """
+                await message.channel.send(help_text)
+
         except Exception as e:
             await message.channel.send(
                 f"There was an error trying to generate the response:\n {e}"
             )
 
 
-client = ChatGPTBot(intents=discord.Intents.default())
+intents = discord.Intents.default()
+intents.message_content = True
+intents.messages = True
+client = ChatGPTBot(intents=intents)
 client.run(DISCORD_API_KEY)
